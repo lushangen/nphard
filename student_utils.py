@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import networkx as nx
+import random as r
 
 def decimal_digits_check(number):
     number = str(number)
@@ -112,4 +113,7 @@ def print_graph(G):
     return
 
 #G = nx.Graph([(1,1)])
-#print_graph(G)
+G = nx.complete_graph(10)
+for (u, v) in G.edges():
+    G.edges[u, v]['weight'] = r.randint(1, 10)
+print_graph(G)
