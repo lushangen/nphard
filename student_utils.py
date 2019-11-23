@@ -121,7 +121,7 @@ print_graph(G)"""
 def random_homes(int, home):
     rv = []
     current = set()
-    for i in range(int + 1):
+    for i in range(1,int):
         current.add(i)
     for i in range(home):
         rand = r.choice(tuple(current))
