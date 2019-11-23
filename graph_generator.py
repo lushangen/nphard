@@ -64,7 +64,7 @@ def random_connected_graph(sd, numvert):
     q.put(0)
    #While weighted union is not size n
     while unioner.sizeOfIndex(0) < numvert:
-        numEdge = r.randint(1, numvert//3)
+        numEdge = r.randint(1, numvert//5)
         fromVert = q.get()
         for c in range(numEdge):
             toVert = r.randint(0, numvert - 1)
@@ -73,17 +73,32 @@ def random_connected_graph(sd, numvert):
             edge = r.randint(1,5)
             if adj[fromVert][toVert] == 0:
                 G, message = adjacency_matrix_to_graph(adj)
+                if not is_metric(G):
+                    print_graph(G)
                 dist = dict(nx.floyd_warshall(G))
                 if dist[fromVert][toVert] > 0 :
                     while edge >= dist[fromVert][toVert]:
-                        edge = edge - 1
+                        edge = dist[fromVert][toVert] - 1
              
                 if edge != 0: 
                     q.put(toVert)
                     adj[fromVert][toVert] = edge
                     adj[toVert][fromVert] = edge
                     unioner.union(toVert,fromVert)
-                    
+                    G, message = adjacency_matrix_to_graph(adj)
+                    while not is_metric(G):
+                        adj[fromVert][toVert] = adj[fromVert][toVert] + 1
+                        adj[toVert][fromVert] = adj[toVert][fromVert] + 1
+                        G, message = adjacency_matrix_to_graph(adj)
+                         
+                        """
+                        print_graph(G)
+                        print("this edge is bad: ")
+                        print(edge)
+                        """
+                
+        if q.empty():
+            q.put(r.randint(0, numvert - 1))
     return adj
 
 def valid_graph(sd, numvert): 
@@ -93,14 +108,14 @@ def valid_graph(sd, numvert):
     #print_graph(G) 
     if not is_metric(G):
         print("you fucked up")
-        nx.draw(G)
-        plt.show()
+        #nx.draw(G)
+        #plt.show()
         #A = random_connected_graph(r.randint(0, 100000), numvert)
         #G, message = adjacency_matrix_to_graph(A)
     return G
     #as adjacency matrix
 #G = valid_graph(3, 10)
-G = valid_graph(4, 50)
+G = valid_graph(4, 200)
 print_graph(G)
 #print(G)
 #for i in range(5):
@@ -122,6 +137,7 @@ print("0")
 for i in range(25):
     print(G[i])
 """
+"""
 for i in range(nums):
     for x in range(len(G[i])):
         if G[i][x] == 0:
@@ -141,3 +157,4 @@ G, msg = adjacency_matrix_to_graph(G)
 nx.draw(G)
 plt.show()
 #G = random_connected_graph(4, 10)
+"""
