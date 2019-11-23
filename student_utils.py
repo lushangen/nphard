@@ -117,3 +117,18 @@ def print_graph(G):
 #for (u, v) in G.edges():
 #    G.edges[u, v]['weight'] = r.randint(1, 10)
 #print_graph(G)
+"""G = nx.complete_graph(10)
+for (u, v) in G.edges():
+    G.edges[u, v]['weight'] = r.randint(1, 10)
+print_graph(G)"""
+
+def random_homes(int, home):
+    rv = []
+    current = set()
+    for i in range(1,int):
+        current.add(i)
+    for i in range(home):
+        rand = r.choice(tuple(current))
+        current.remove(rand)
+        rv.append(rand)
+    return rv
