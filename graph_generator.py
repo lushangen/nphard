@@ -29,7 +29,7 @@ def branching_graph(numvert):
     q3.put(0)
 
     while not q.empty():
-        numEdges = r.randint(1, numvert//11)
+        numEdges = r.randint(1, numvert//10)
         set = {}
         fromVert = q3.get()
 
@@ -96,25 +96,37 @@ G = adjacency_matrix_to_graph(G)
 print_graph(G)
 print(is_metric(G))
 """
+nums = 200
+G = branching_graph(nums)
+print(nums)
+print(nums//2)
+for i in range(nums):
+    print(i, end = " ")
+print()
+rv = random_homes(nums, nums//2)
+for i in rv:
+    print(i, end = " ")
+print()
+print("0")
 
-G = branching_graph(50)
 """
 for i in range(25):
     print(G[i])
 """
-for i in range(50):
+for i in range(nums):
     for x in range(len(G[i])):
         if G[i][x] == 0:
             if (x == len(G[i])-1):
-                print("x", end = "")
+                print("x")
             else:
                 print("x", end = " ")
         else:
             if (x == len(G[i])-1):
-                print(G[i][x], end = "")
+                print(G[i][x])
             else:
                 print(G[i][x], end = " ")
-    print("\n")
+
+
 G, msg = adjacency_matrix_to_graph(G)
 
 nx.draw(G)

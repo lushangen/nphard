@@ -128,6 +128,3 @@ def random_homes(int, home):
         current.remove(rand)
         rv.append(rand)
     return rv
-
-rv = random_homes(100, 50)
-print(rv)
