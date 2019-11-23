@@ -11,6 +11,44 @@ from student_utils import *
 import random as r
 from UF import *
 import scipy
+import matplotlib.pyplot as plt
+
+def branching_graph(numvert):
+    adj = []
+    for x in range(numvert):
+        row = [0]*numvert
+        adj.append(row)
+
+    q = Queue(maxsize = numvert)
+    q2 = Queue(maxsize = numvert)
+    q3 = Queue(maxsize = numvert)
+
+
+    for i in range(1,numvert):
+        q.put(i)
+    q3.put(0)
+
+    while not q.empty():
+        numEdges = r.randint(1, numvert//11)
+        set = {}
+        fromVert = q3.get()
+
+        for i in range(numEdges):
+            if q.empty():
+                break
+            else:
+                y = q.get()
+                q2.put(y)
+                q3.put(y)
+        while not q2.empty():
+            toVert = q2.get()
+            length =  r.randint(1,5)
+            #print(fromVert, toVert)
+            adj[fromVert][toVert] = length
+            adj[toVert][fromVert] = length
+    return adj
+
+
 
 def random_connected_graph(sd, numvert):
     r.seed(sd)
@@ -19,14 +57,14 @@ def random_connected_graph(sd, numvert):
     for x in range(numvert):
         row = []
         for y in range(numvert):
-            row.append(0)    
+            row.append(0)
         adj.append(row)
-            
-    q = Queue(maxsize = numvert*numvert) 
+
+    q = Queue(maxsize = numvert*numvert)
     q.put(0)
-    
+
     #While weighted union is not size n
-    while unioner.sizeOfIndex(0) < numvert: 
+    while unioner.sizeOfIndex(0) < numvert:
         numEdge = r.randint(1, numvert//3)
         fromVert = q.get()
         for c in range(numEdge):
@@ -38,18 +76,47 @@ def random_connected_graph(sd, numvert):
             adj[fromVert][toVert] = r.randint(1,5)
             adj[toVert][fromVert] = r.randint(1,5)
     return adj
-def valid_graph(sd, numvert): 
+
+def valid_graph(sd, numvert):
     r.seed(sd)
     A = random_connected_graph(sd, numvert)
-    G = adjacency_matrix_to_graph(A)
-    print_graph(G) 
+    G, msg = adjacency_matrix_to_graph(A)
+    #print_graph(G)
     while not is_metric(G):
         A = random_connected_graph(r.randint(0, 100000), numvert)
-        G = adjacency_matrix_to_graph(A)
+        G, msg = adjacency_matrix_to_graph(A)
     return A
     #as adjacency matrix
-#G = valid_graph(3, 10)
-G = random_connected_graph(4, 5)
-#print(G)
-for i in range(5):
+
+#G = valid_graph(2, 50)
+"""
+G = nx.full_rary_tree(3,10)
+G = nx.adjacency_matrix(G)
+G = adjacency_matrix_to_graph(G)
+print_graph(G)
+print(is_metric(G))
+"""
+
+G = branching_graph(50)
+"""
+for i in range(25):
     print(G[i])
+"""
+for i in range(50):
+    for x in range(len(G[i])):
+        if G[i][x] == 0:
+            if (x == len(G[i])-1):
+                print("x", end = "")
+            else:
+                print("x", end = " ")
+        else:
+            if (x == len(G[i])-1):
+                print(G[i][x], end = "")
+            else:
+                print(G[i][x], end = " ")
+    print("\n")
+G, msg = adjacency_matrix_to_graph(G)
+
+nx.draw(G)
+plt.show()
+#G = random_connected_graph(4, 10)
