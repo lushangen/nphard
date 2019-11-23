@@ -77,6 +77,8 @@ def random_connected_graph(sd, numvert):
             adj[toVert][fromVert] = r.randint(1,5)
     return adj
 
+
+
 def valid_graph(sd, numvert):
     r.seed(sd)
     A = random_connected_graph(sd, numvert)
