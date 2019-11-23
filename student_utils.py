@@ -1,6 +1,6 @@
-import networkx as nx
 import numpy as np
-
+import scipy as sp
+import networkx as nx
 
 def decimal_digits_check(number):
     number = str(number)
@@ -105,3 +105,11 @@ def cost_of_solution(G, car_cycle, dropoff_mapping):
 
 def convert_locations_to_indices(list_to_convert, list_of_locations):
     return [list_of_locations.index(name) if name in list_of_locations else None for name in list_to_convert]
+
+def print_graph(G):
+    A = nx.adjacency_matrix(G)
+    print(A.todense())
+    return
+
+#G = nx.Graph([(1,1)])
+#print_graph(G)
