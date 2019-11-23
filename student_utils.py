@@ -113,6 +113,10 @@ def print_graph(G):
     return
 
 #G = nx.Graph([(1,1)])
+#G = nx.complete_graph(10)
+#for (u, v) in G.edges():
+#    G.edges[u, v]['weight'] = r.randint(1, 10)
+#print_graph(G)
 """G = nx.complete_graph(10)
 for (u, v) in G.edges():
     G.edges[u, v]['weight'] = r.randint(1, 10)
