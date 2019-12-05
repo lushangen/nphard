@@ -13,24 +13,34 @@ from UF import *
 import scipy
 import matplotlib.pyplot as plt
 
-def branching_graph(numvert):
-    adj = []
-    for x in range(numvert):
-        row = [0]*numvert
-        adj.append(row)
+def branching_graph(numvert, start, adj, adj_bool):
+    if not adj_bool:
+        for x in range(numvert):
+            row = [0]*numvert
+            adj.append(row)
+    else:
+        for x in adj:
+            lst = [0] * numvert
+            x += lst
+        for x in range(numvert):
+            n = numvert*2
+            lst = [0] * n
+            #print(len(lst))
+            adj.append(lst)
+    #print(len(adj))
+
 
     q = Queue(maxsize = numvert)
     q2 = Queue(maxsize = numvert)
     q3 = Queue(maxsize = numvert)
 
 
-    for i in range(1,numvert):
+    for i in range(start+1,start+numvert):
         q.put(i)
-    q3.put(0)
+    q3.put(start)
 
     while not q.empty():
         numEdges = r.randint(1, numvert//10)
-        set = {}
         fromVert = q3.get()
 
         for i in range(numEdges):
@@ -46,6 +56,15 @@ def branching_graph(numvert):
             #print(fromVert, toVert)
             adj[fromVert][toVert] = length
             adj[toVert][fromVert] = length
+
+    adj[0][start] = 2
+    adj[start][0] = 2
+    adj[55][start+15] = 2
+    adj[start+15][55] = 2
+    adj[32][start+20] = 2
+    adj[start+20][32] = 2
+    adj[82][start+73] = 2
+    adj[start+73][82] = 2
     return adj
 
 
@@ -64,7 +83,8 @@ def random_connected_graph(sd, numvert):
     q.put(0)
    #While weighted union is not size n
     while unioner.sizeOfIndex(0) < numvert:
-        numEdge = r.randint(1, numvert//4)
+        numEdge = r.randint(1, numvert//5)
+
         fromVert = q.get()
         for c in range(numEdge):
             toVert = r.randint(0, numvert - 1)
@@ -74,6 +94,8 @@ def random_connected_graph(sd, numvert):
 
             if adj[fromVert][toVert] == 0:
                 G, message = adjacency_matrix_to_graph(adj)
+                if not is_metric(G):
+                    print_graph(G)
                 dist = dict(nx.floyd_warshall(G))
                 dist2 = dist[fromVert][toVert]
                 if dist2 > 0:
@@ -81,13 +103,26 @@ def random_connected_graph(sd, numvert):
                         edge = dist2-1
                     #print("edge: ", edge)
 
-                if edge > 0:
+                if edge != 0:
+
                     q.put(toVert)
                     adj[fromVert][toVert] = edge
                     adj[toVert][fromVert] = edge
                     unioner.union(toVert,fromVert)
+                    G, message = adjacency_matrix_to_graph(adj)
+                    while not is_metric(G):
+                        adj[fromVert][toVert] = adj[fromVert][toVert] + 1
+                        adj[toVert][fromVert] = adj[toVert][fromVert] + 1
+                        G, message = adjacency_matrix_to_graph(adj)
 
+                        """
+                        print_graph(G)
+                        print("this edge is bad: ")
+                        print(edge)
+                        """
 
+        if q.empty():
+            q.put(r.randint(0, numvert - 1))
     return adj
 
 
@@ -98,22 +133,39 @@ def valid_graph(sd, numvert):
     #print_graph(G)
     if not is_metric(G):
         print("you fucked up")
+    """
     else:
         nx.draw(G)
         plt.show()
+    """
+
+        #nx.draw(G)
+        #plt.show()
+
         #A = random_connected_graph(r.randint(0, 100000), numvert)
         #G, message = adjacency_matrix_to_graph(A)
-    return G
+    return A
     #as adjacency matrix
-#G = valid_graph(3, 10)
-G = valid_graph(4, 50)
-#print_graph(G)
+#A = valid_graph(3, 10)
+nums = 200
+A = valid_graph(42, 100)
+G2 = branching_graph(100, nums//2, A, True)
+G, msg = adjacency_matrix_to_graph(G2)
+nx.draw(G, with_labels = True)
+plt.show()
+#nx.draw(H)
+#plt.show()
+#print(is_metric(G2))
+
+
 #print(G)
 #for i in range(5):
     #print(G[i])
+print(is_metric(G))
 """
 nums = 200
 G = branching_graph(nums)
+"""
 print(nums)
 print(nums//2)
 for i in range(nums):
@@ -125,29 +177,17 @@ for i in rv:
 print()
 print("0")
 
-"""
-"""
-for i in range(25):
-    print(G[i])
-"""
-"""
+
+
 for i in range(nums):
-    for x in range(len(G[i])):
-        if G[i][x] == 0:
-            if (x == len(G[i])-1):
+    for x in range(len(G2[i])):
+        if G2[i][x] == 0:
+            if (x == len(G2[i])-1):
                 print("x")
             else:
                 print("x", end = " ")
         else:
-            if (x == len(G[i])-1):
-                print(G[i][x])
+            if (x == len(G2[i])-1):
+                print(G2[i][x])
             else:
-                print(G[i][x], end = " ")
-
-
-G, msg = adjacency_matrix_to_graph(G)
-
-nx.draw(G)
-plt.show()
-#G = random_connected_graph(4, 10)
-"""
+                print(G2[i][x], end = " ")
