@@ -105,11 +105,12 @@ def solve_tsp(list_of_locations, list_of_homes, starting_car_location, adjacency
     car_path = []
     home_map = {}
     home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+
     start = list_of_locations.index(starting_car_location)
     graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
     all_paths = dict(nx.all_pairs_dijkstra(graph))
 
-
+    start_in_home = start in home_indexes
     if start in home_indexes:
         home_indexes.remove(start)
     home_indexes.insert(0, start)
@@ -188,6 +189,9 @@ def solve_tsp(list_of_locations, list_of_homes, starting_car_location, adjacency
         #route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
     # for i in car_path:
     #      print(i)
+    if start in drop_off_dict.keys() and not start_in_home:
+        drop_off_dict.pop(start, None)
+
     return car_path, drop_off_dict
 
 def print_solution(manager, routing, assignment):
@@ -243,7 +247,9 @@ def solve_from_file(input_file, output_directory, params=[]):
     car_path2, drop_offs2 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
 
     ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
-    if cost_of_solution(ad_graph, car_path2, drop_offs2) < cost_of_solution(ad_graph, car_path, drop_offs):
+    cost1, msg = cost_of_solution(ad_graph, car_path2, drop_offs2)
+    cost2, msg = cost_of_solution(ad_graph, car_path, drop_offs)
+    if cost1 < cost2:
         car_path = car_path2
         drop_offs = drop_offs2
     basename, filename = os.path.split(input_file)
