@@ -44,10 +44,19 @@ def centrality_solver(list_of_locations, list_of_homes, starting_car_location, a
     max = 0;
     maxnode = 0;
     for k in cent_map.keys(): 
-        
-
-
-
+        if cent_map[k] > max:
+            max = cent_map[k]
+            maxnode = k
+     
+    paths_dict = all_paths.get(start)[1]
+    car_path = paths_dict[maxnode]
+    rev = car_path[:]
+    rev.reverse()
+    car_path.extend(rev[1:])
+    print(car_path)
+    drop_off_dict[maxnode] = home_indexes
+    
+    return car_path, drop_off_dict
 def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """
     Write your algorithm here.
@@ -269,12 +278,21 @@ def solve_from_file(input_file, output_directory, params=[]):
     num_of_locations, num_houses, list_locations, list_houses, starting_car_location, adjacency_matrix = data_parser(input_data)
 
     car_path, drop_offs = solve(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
-    car_path2, drop_offs2 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    car_path2, drop_offs2 = centrality_solver(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    #car_path3, drop_offs3 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
 
     ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
-    if cost_of_solution(ad_graph, car_path2, drop_offs2) < cost_of_solution(ad_graph, car_path, drop_offs):
+    cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2) 
+    cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
+    #cost3, msg3 = cost_of_solution(ad_graph, car_path3, drop_offs3)
+    print(cost2)
+    print(cost1) 
+    #print(cost3)
+    """
+    if cost2 < cost1:
         car_path = car_path2
         drop_offs = drop_offs2
+    """
     basename, filename = os.path.split(input_file)
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
