@@ -6,6 +6,12 @@ import argparse
 import utils
 
 from student_utils import *
+
+#Google OR Tools
+#from __future__ import print_function
+from ortools.constraint_solver import routing_enums_pb2
+from ortools.constraint_solver import pywrapcp
+
 """
 ======================================================================
   Complete the following function.
@@ -59,26 +65,27 @@ def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_mat
     loc_map = {}
     drop_off_dict = {}
     num_home_visited = 0
+
+    """
     for i in range(len(list_of_locations)):
         loc_map[i] = list_of_locations[0]
-
+    """
 
     home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
     start = list_of_locations.index(starting_car_location)
     graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
     num_homes = len(list_of_homes)
 
-
-
     car_path = []
     all_paths = dict(nx.all_pairs_dijkstra(graph))
     visited = set()
-    visited.add(start)
+
     #print(start)
     car_path.append(start)
     current_node = start
 
     if start in home_indexes:
+        visited.add(start)
         drop_off_dict[start] = [start]
         num_home_visited += 1
 
@@ -109,6 +116,123 @@ def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_mat
     #drop_off_dict = {drop_off_loc: [home1, home2, ...] }
 
     return car_path, drop_off_dict
+
+
+def create_data_model(list_of_homes, starting_location):
+    """Stores the data for the problem."""
+    data = {}
+    # Locations in block units
+    #print(list_of_homes)
+    data['locations'] = list_of_homes
+    data['num_vehicles'] = 1
+    data['depot'] = starting_location
+    return data
+
+def solve_tsp(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
+    """Entry point of the program."""
+    drop_off_dict = {}
+    car_path = []
+    home_map = {}
+    home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+    start = list_of_locations.index(starting_car_location)
+    graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    all_paths = dict(nx.all_pairs_dijkstra(graph))
+
+
+    if start in home_indexes:
+        home_indexes.remove(start)
+    home_indexes.insert(0, start)
+    home_count = 0;
+
+    for home in home_indexes:
+        #print(home, end = " ")
+        home_map[home_count] = home
+        home_count += 1
+    # Instantiate the data problem.
+    #print(len(home_map))
+    data = create_data_model(home_indexes, 0)
+
+    # Create the routing index manager.
+    manager = pywrapcp.RoutingIndexManager(len(data['locations']),
+                                           data['num_vehicles'], data['depot'])
+
+    #print(manager.NodeToIndex(15))
+    # Create Routing Model.
+    routing = pywrapcp.RoutingModel(manager)
+
+    def distance_callback(from_index, to_index):
+        """Returns the distance between the two nodes."""
+        # Convert from routing variable Index to distance matrix NodeIndex.
+        #print(home_map[to_index], end = " ")
+        from_index = manager.IndexToNode(from_index)
+        to_index = manager.IndexToNode(to_index)
+        dist_to = all_paths.get(home_map[from_index])[0][home_map[to_index]]
+        #if from_index >= 25 or to_index >= 25:
+        #    print("from" if from_index >= 25 else "to", end = " ")
+        #dist_to = all_paths[from_index][0][to_index]
+        return dist_to
+
+    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+
+    # Define cost of each arc.
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+
+    # Setting first solution heuristic.
+    """
+    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
+    """
+
+    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.local_search_metaheuristic = (
+    routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
+    search_parameters.time_limit.seconds = 1
+    #search_parameters.log_search = True
+
+    # Solve the problem.
+    assignment = routing.SolveWithParameters(search_parameters)
+
+    # if assignment:
+    #     print_solution(manager, routing, assignment)
+    # Print solution on console.
+
+    if start in home_indexes:
+        drop_off_dict[start] = [start]
+
+
+    index = routing.Start(0)
+    car_path.append(start)
+
+    while not routing.IsEnd(index):
+        previous_index = manager.IndexToNode(index)
+        index = assignment.Value(routing.NextVar(index))
+
+        car_path.pop();
+        to_index = manager.IndexToNode(index)
+        path_to = all_paths.get(home_map[previous_index])[1][home_map[to_index]]
+        drop_off_dict[home_map[to_index]] = [home_map[to_index]]
+        #print(to_index, end = ' ')
+        car_path.extend(path_to)
+        #route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
+    # for i in car_path:
+    #      print(i)
+    return car_path, drop_off_dict
+
+def print_solution(manager, routing, assignment):
+    """Prints assignment on console."""
+    print('Objective: {}'.format(assignment.ObjectiveValue()))
+    index = routing.Start(0)
+    plan_output = 'Route:\n'
+    route_distance = 0
+    while not routing.IsEnd(index):
+        plan_output += ' {} ->'.format(index)
+        previous_index = index
+        index = assignment.Value(routing.NextVar(index))
+        route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
+    plan_output += ' {}\n'.format(manager.IndexToNode(index))
+    print(plan_output)
+    plan_output += 'Objective: {}m\n'.format(route_distance)
 
 """
 ======================================================================
@@ -143,8 +267,14 @@ def solve_from_file(input_file, output_directory, params=[]):
 
     input_data = utils.read_file(input_file)
     num_of_locations, num_houses, list_locations, list_houses, starting_car_location, adjacency_matrix = data_parser(input_data)
-    car_path, drop_offs = solve(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
 
+    car_path, drop_offs = solve(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    car_path2, drop_offs2 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+
+    ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    if cost_of_solution(ad_graph, car_path2, drop_offs2) < cost_of_solution(ad_graph, car_path, drop_offs):
+        car_path = car_path2
+        drop_offs = drop_offs2
     basename, filename = os.path.split(input_file)
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
