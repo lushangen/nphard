@@ -159,7 +159,7 @@ def solve_tsp(list_of_locations, list_of_homes, starting_car_location, adjacency
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.local_search_metaheuristic = (
     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
-    search_parameters.time_limit.seconds = 1
+    search_parameters.time_limit.seconds = 8
     #search_parameters.log_search = True
 
     # Solve the problem.
