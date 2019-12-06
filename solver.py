@@ -13,6 +13,35 @@ from student_utils import *
 """
 
 
+def centrality_solver(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
+    loc_map = {}
+    drop_off_dict = {}
+    num_home_visited = 0
+    for i in range(len(list_of_locations)):
+        loc_map[i] = list_of_locations[0]
+
+
+    home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+    start = list_of_locations.index(starting_car_location)
+    graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    num_homes = len(list_of_homes)
+
+    car_path = []
+    all_paths = dict(nx.all_pairs_dijkstra(graph))
+    visited = set()
+    visited.add(start)
+    #print(start)
+    car_path.append(start)
+    current_node = start
+    
+    cent_map = nx.closeness_centrality(graph);
+    max = 0;
+    maxnode = 0;
+    for k in cent_map.keys(): 
+        
+
+
+
 def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """
     Write your algorithm here.
