@@ -18,6 +18,134 @@ from ortools.constraint_solver import pywrapcp
 ======================================================================
 """
 
+def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
+    """Entry point of the program."""
+    drop_off_dict = {}
+    car_path = []
+    home_map = {}
+    centrality_score = {}
+    centrality_map = {}
+    epsilon = 0
+    home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+
+    start = list_of_locations.index(starting_car_location)
+    graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    all_paths = dict(nx.all_pairs_dijkstra(graph))
+
+    for v in range(list_of_locations):
+        centrality_score[v] = compute_centrality(v)
+
+    high_centrality_homes = set()
+    used_homes = set()
+
+    for home in high_centrality_homes:
+        centrality_map[home] = [home]
+        dist_dict = all_paths.get(home)[0]
+        paths_dict = all_paths.get(home)[1]
+        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in used_homes and k in home_indexes}
+
+        min_dist = min(dist_dict.values())
+        dist_dict = {k:v for (k,v) in dist_dict.items() if dist_dict[k] <= min_dist*epsilon}
+
+        for cluster_home in dist_dict.keys():
+            centrality_map[home].append(cluster_home)
+            home_indexes.remove(cluster_home)
+            used_homes.add(cluster_home)
+
+    start_in_home = start in home_indexes
+    if start in home_indexes:
+        home_indexes.remove(start)
+    home_indexes.insert(0, start)
+    home_count = 0;
+
+    for home in home_indexes:
+        #print(home, end = " ")
+        home_map[home_count] = home
+        home_count += 1
+    # Instantiate the data problem.
+    #print(len(home_map))
+    data = create_data_model(home_indexes, 0)
+
+    # Create the routing index manager.
+    manager = pywrapcp.RoutingIndexManager(len(data['locations']),
+                                           data['num_vehicles'], data['depot'])
+
+    #print(manager.NodeToIndex(15))
+    # Create Routing Model.
+    routing = pywrapcp.RoutingModel(manager)
+
+    def distance_callback(from_index, to_index):
+        """Returns the distance between the two nodes."""
+        # Convert from routing variable Index to distance matrix NodeIndex.
+        #print(home_map[to_index], end = " ")
+        from_index = manager.IndexToNode(from_index)
+        to_index = manager.IndexToNode(to_index)
+        dist_to = all_paths.get(home_map[from_index])[0][home_map[to_index]]
+        #if from_index >= 25 or to_index >= 25:
+        #    print("from" if from_index >= 25 else "to", end = " ")
+        #dist_to = all_paths[from_index][0][to_index]
+        return dist_to
+
+    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+
+    # Define cost of each arc.
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+
+    # Setting first solution heuristic.
+    """
+    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
+    """
+
+    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.local_search_metaheuristic = (
+    routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
+    search_parameters.time_limit.seconds = 8
+    #search_parameters.log_search = True
+
+    # Solve the problem.
+    assignment = routing.SolveWithParameters(search_parameters)
+
+    # if assignment:
+    #     print_solution(manager, routing, assignment)
+    # Print solution on console.
+
+    #if start in home_indexes:
+    #    drop_off_dict[start] = [start]
+
+
+    index = routing.Start(0)
+    car_path.append(start)
+
+    while not routing.IsEnd(index):
+        previous_index = manager.IndexToNode(index)
+        index = assignment.Value(routing.NextVar(index))
+
+        to_index = manager.IndexToNode(index)
+        car_path.append(home_map[to_index])
+        #path_to = all_paths.get(home_map[previous_index])[1][home_map[to_index]]
+        #drop_off_dict[home_map[to_index]] = [home_map[to_index]]
+        #print(to_index, end = ' ')
+        #car_path.extend(path_to)
+        #route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
+    # for i in car_path:
+    #      print(i)
+    drop_off_dict = centrality_map
+    #if start in drop_off_dict.keys() and not start_in_home:
+    #    drop_off_dict.pop(start, None)
+    new_path = [start]
+    previous_index = start
+    for to_index in car_path[1:]:
+        new_path.pop()
+        path_to = all_paths.get(previous_index)[1][to_index]
+        new_path.extend(path_to)
+        previous_index = to_index
+
+    car_path = new_path
+    return car_path, drop_off_dict
+
+
 
 def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """
@@ -98,6 +226,74 @@ def create_data_model(list_of_homes, starting_location):
     data['num_vehicles'] = 1
     data['depot'] = starting_location
     return data
+def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
+    """
+    Write your algorithm here.
+    Input:
+        list_of_locations: A list of locations such that node i of the graph corresponds to name at index i of the list
+        list_of_homes: A list of homes
+        starting_car_location: The name of the starting location for the car
+        adjacency_matrix: The adjacency matrix from the input file
+    Output:
+        A list of locations representing the car path
+        A dictionary mapping drop-off location to a list of homes of TAs that got off at that particular location
+        NOTE: both outputs should be in terms of indices not the names of the locations themselves
+    """
+
+    loc_map = {}
+    drop_off_dict = {}
+    num_home_visited = 0
+
+    """
+    for i in range(len(list_of_locations)):
+        loc_map[i] = list_of_locations[0]
+    """
+
+    home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+    start = list_of_locations.index(starting_car_location)
+    graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    num_homes = len(list_of_homes)
+
+    car_path = []
+    all_paths = dict(nx.all_pairs_dijkstra(graph))
+    visited = set()
+
+    #print(start)
+    car_path.append(start)
+    current_node = start
+
+    if start in home_indexes:
+        visited.add(start)
+        drop_off_dict[start] = [start]
+        num_home_visited += 1
+
+    while num_home_visited < num_homes:
+        dist_dict = all_paths.get(current_node)[0]
+        paths_dict = all_paths.get(current_node)[1]
+
+        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in visited and k in home_indexes}
+        min_dist = min(dist_dict.values())
+        min_list = [k for k in dist_dict.keys() if dist_dict[k] <= min_dist]
+        #print(dist_dict.values())
+        target = min_list[0]
+        drop_off_dict[target] = [target]
+        #print(target+1)
+        #print(target)
+        car_path.pop()
+        car_path.extend(paths_dict[target])
+
+        visited.add(target)
+        current_node = target
+        num_home_visited += 1
+
+    paths_dict = all_paths.get(current_node)[1]
+    car_path.pop()
+    car_path.extend(paths_dict[start])
+    #print((drop_off_dict.keys()))
+    #car_path = [start, ...., start]
+    #drop_off_dict = {drop_off_loc: [home1, home2, ...] }
+
+    return car_path, drop_off_dict
 
 def solve_tsp(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """Entry point of the program."""
