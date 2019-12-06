@@ -12,6 +12,7 @@ from student_utils import *
 ======================================================================
 """
 
+
 def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """
     Write your algorithm here.
@@ -25,7 +26,60 @@ def solve(list_of_locations, list_of_homes, starting_car_location, adjacency_mat
         A dictionary mapping drop-off location to a list of homes of TAs that got off at that particular location
         NOTE: both outputs should be in terms of indices not the names of the locations themselves
     """
-    pass
+
+    loc_map = {}
+    drop_off_dict = {}
+    num_home_visited = 0
+    for i in range(len(list_of_locations)):
+        loc_map[i] = list_of_locations[0]
+
+
+    home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+    start = list_of_locations.index(starting_car_location)
+    graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    num_homes = len(list_of_homes)
+
+
+
+    car_path = []
+    all_paths = dict(nx.all_pairs_dijkstra(graph))
+    visited = set()
+    visited.add(start)
+    #print(start)
+    car_path.append(start)
+    current_node = start
+
+    if start in home_indexes:
+        drop_off_dict[start] = [start]
+        num_home_visited += 1
+
+    while num_home_visited < num_homes:
+        dist_dict = all_paths.get(current_node)[0]
+        paths_dict = all_paths.get(current_node)[1]
+
+        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in visited and k in home_indexes}
+        min_dist = min(dist_dict.values())
+        min_list = [k for k in dist_dict.keys() if dist_dict[k] <= min_dist]
+        #print(dist_dict.values())
+        target = min_list[0]
+        drop_off_dict[target] = [target]
+        #print(target+1)
+        #print(target)
+        car_path.pop()
+        car_path.extend(paths_dict[target])
+
+        visited.add(target)
+        current_node = target
+        num_home_visited += 1
+
+    paths_dict = all_paths.get(current_node)[1]
+    car_path.pop()
+    car_path.extend(paths_dict[start])
+    #print((drop_off_dict.keys()))
+    #car_path = [start, ...., start]
+    #drop_off_dict = {drop_off_loc: [home1, home2, ...] }
+
+    return car_path, drop_off_dict
 
 """
 ======================================================================
