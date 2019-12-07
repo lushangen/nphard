@@ -228,7 +228,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
                 if i in drop_off_dict[k]:
                     drop_off_dict[k].remove(i)
                     drop_off_dict[i].append(i)
-                    
+
     removeIt = set()
     for i in drop_off_dict.keys():
         if not drop_off_dict[i]:
@@ -236,6 +236,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
 
     for i in removeIt:
         drop_off_dict.pop(i, None)
+
     car_path = new_path
     return car_path, drop_off_dict
 
@@ -505,7 +506,7 @@ def solve_from_file(input_file, output_directory, params=[]):
     #car_path2, drop_offs2 = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
     #car_path3, drop_offs3 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
     car_path, drop_offs = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
-    
+
     #ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
     #cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2)
     #cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
