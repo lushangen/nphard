@@ -46,7 +46,7 @@ def compute_group(v, home_indexes, shortest_paths, epsilon):
         if homeDist <= minDist * epsilon:
             sum += homeDist
             homeList.append(home)
-    return sum/len(homeList), homeList[1:]
+    return sum/(pow(1.5, len(homeList))*len(homeList)), homeList[1:]
 
 def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """Entry point of the program."""
@@ -65,12 +65,12 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
     all_paths = dict(nx.all_pairs_dijkstra(graph))
 
     for v in range(len(list_of_locations)):
-        group_score[v], cluster_map[v] = compute_group(v, home_indexes[:], all_paths, 1.2)
+        group_score[v], cluster_map[v] = compute_group(v, home_indexes[:], all_paths, 1.1)
 
     sorted_v = sorted([k for k in group_score.keys() if group_score[k] > 0], key = lambda x: group_score[x])
     min_group_score = group_score[sorted_v[0]]
     print(min_group_score)
-    delta = 1.5
+    delta = 1.3
 
     high_centrality_homes = set()  #LOW GROUP SCORE VERTICES (CLUSTER)
     used_homes = set()
@@ -503,7 +503,7 @@ def solve_from_file(input_file, output_directory, params=[]):
     #car_path2, drop_offs2 = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
     #car_path3, drop_offs3 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
     car_path, drop_offs = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
-
+    
     #ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
     #cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2)
     #cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
