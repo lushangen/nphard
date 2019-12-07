@@ -68,15 +68,34 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     min_group_score = min(group_score.values())
     delta = 1.5
 
-
-    
-
-    red_sort_v = [x for x in sorted_v if group_score[x] < delta * min_group_score]
-    high_centrality_homes = set(red_sort_v)
+    high_centrality_homes = set()  #LOW GROUP SCORE VERTICES (CLUSTER)
     used_homes = set()
+    newHome = home_indexes[:]
+    while newHome and sorted_v[0] < delta * min_group_score:
+        
+        v = sorted_v[0]
+        high_centrality_homes.add(v)
+        usedList = cluster_map[v] 
+        if v in center_map.keys():
+            center_map[v].extend(usedList)
+        else:
+            center_map[v] = usedList
+            if v in home_indexes:
+                centermap[v].append(v)
+        for vert in usedList:
+            used_homes.add(vert)
+            if vert in newHome:
+                newHome.remove(vert)
+        used_homes.add(v)
+        if v in newHome:
+            newHome.remove(v)
+        for x in range(list_of_locations):
+            group_score[list_of_locations[x]], cluster_map[list_of_locations[x]] = compute_group(list_of_locations[x], newHome, all_paths, 1.2)
+        
+        sorted_v = sorted([k for k in group_score.keys()], key = lambda x: group_score[x])
 
-
-
+    """START TIM
+    
     for home in high_centrality_homes:
         center_map[home] = [home]
         dist_dict = all_paths.get(home)[0]
@@ -103,7 +122,13 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
         home_count += 1
     # Instantiate the data problem.
     #print(len(home_map))
-    data = create_data_model(home_indexes, 0)
+    END TIM """
+    tspInput = list(high_centrality_homes)    
+    tspInput.extend(newHome)
+    if start in tspInput:
+        tspInput.remove(start)
+    tspInput.insert(0, start)
+    data = create_data_model(tspInput, 0)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['locations']),
