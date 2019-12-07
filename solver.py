@@ -25,37 +25,63 @@ def compute_centrality(v, home_indexes, shortest_paths):
         sum += vpaths[home]
     return (n-1)/sum
 
+def compute_group(v, home_indexes, shortest_paths, epsilon):
+    #Could home_indexes be empty?
+    #REMOVES home if passed in 
+    numHomes = len(home_indexes)
+    sum = 0
+    vpath = shortest_paths[v][0]
+    minDist = vpath[home_indexes[0]]
+    homeList = [home_indexes[0]]
+    if v in home_indexes:
+        home_indexes.remove(v) 
+    for home in home_indexes:
+        if vpath[home] < minDist:
+            minDist = vpath[home] 
+            homeList = [home]
+    for home in home_indexes:
+        homeDist = vpath[home]
+        if homeDist <= minDist * epsilon:
+            sum += homeDist 
+            homeList.append(home)
+    return sum/len(homeList), homeList
+
 def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """Entry point of the program."""
     drop_off_dict = {}
     car_path = []
     home_map = {}
-    centrality_score = {}
-    centrality_map = {}
-    epsilon = 0
+    group_score = {}
+    center_map = {} 
+    epsilon = 1
     home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+    cluster_map = {}
 
     start = list_of_locations.index(starting_car_location)
     graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
     all_paths = dict(nx.all_pairs_dijkstra(graph))
 
     for v in range(list_of_locations):
-        centrality_score[v] = compute_centrality(v,home_indexes, all_paths)
-
-    high_centrality_homes = set()
+        group_score[v], cluster_map[v] = compute_group(v, home_indexes, all_paths, 1.2)
+ 
+    sorted_v = sorted([k for k in group_score.keys()], key = lambda x: group_score[x])
+    min_group_score = min(group_score.values())
+    delta = 1.5
+    red_sort_v = [x for x in sorted_v if group_score[x] < delta * min_group_score] 
+    high_centrality_homes = set(red_sort_v)
     used_homes = set()
-
+    
     for home in high_centrality_homes:
-        centrality_map[home] = [home]
+        center_map[home] = [home]
         dist_dict = all_paths.get(home)[0]
         paths_dict = all_paths.get(home)[1]
-        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in used_homes and k in home_indexes}
+        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in used_homes and k in home_indexes} #distance dict of all remaing homes 
 
-        min_dist = min(dist_dict.values())
+        min_dist = min(dist_dict.values()) #closest home to high centrality home
         dist_dict = {k:v for (k,v) in dist_dict.items() if dist_dict[k] <= min_dist*epsilon}
 
         for cluster_home in dist_dict.keys():
-            centrality_map[home].append(cluster_home)
+            center_map[home].append(cluster_home)
             home_indexes.remove(cluster_home)
             used_homes.add(cluster_home)
 
@@ -138,7 +164,7 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
         #route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
     # for i in car_path:
     #      print(i)
-    drop_off_dict = centrality_map
+    drop_off_dict = center_map
     #if start in drop_off_dict.keys() and not start_in_home:
     #    drop_off_dict.pop(start, None)
     new_path = [start]
