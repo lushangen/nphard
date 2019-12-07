@@ -46,7 +46,7 @@ def compute_group(v, home_indexes, shortest_paths, epsilon):
         if homeDist <= minDist * epsilon:
             sum += homeDist
             homeList.append(home)
-    return sum/(pow(1.5, len(homeList))*len(homeList)), homeList[1:]
+    return sum/(pow(1.3, len(homeList))*len(homeList)), homeList[1:]
 
 def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """Entry point of the program."""
@@ -55,7 +55,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
     home_map = {}
     group_score = {}
     center_map = {}
-    epsilon = 1
+    epsilon = 1.2
     home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
     orig_home_indexes = home_indexes[:]
     cluster_map = {}
@@ -65,12 +65,12 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
     all_paths = dict(nx.all_pairs_dijkstra(graph))
 
     for v in range(len(list_of_locations)):
-        group_score[v], cluster_map[v] = compute_group(v, home_indexes[:], all_paths, 1.1)
+        group_score[v], cluster_map[v] = compute_group(v, home_indexes[:], all_paths, epsilon)
 
     sorted_v = sorted([k for k in group_score.keys() if group_score[k] > 0], key = lambda x: group_score[x])
     min_group_score = group_score[sorted_v[0]]
     print(min_group_score)
-    delta = 1.3
+    delta = 6
 
     high_centrality_homes = set()  #LOW GROUP SCORE VERTICES (CLUSTER)
     used_homes = set()
@@ -98,7 +98,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
         while v in newHome:
             newHome.remove(v)
         for x in range(len(list_of_locations)):
-            group_score[x], cluster_map[x] = compute_group(x, newHome[:], all_paths, 1.2)
+            group_score[x], cluster_map[x] = compute_group(x, newHome[:], all_paths, epsilon)
         sorted_v = sorted([k for k in group_score.keys() if group_score[k] > 0], key = lambda x: group_score[x])
 
     for home in newHome:
@@ -178,7 +178,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.local_search_metaheuristic = (
     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
-    search_parameters.time_limit.seconds = 2
+    search_parameters.time_limit.seconds = 3
     #search_parameters.log_search = True
 
     # Solve the problem.
@@ -220,7 +220,21 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
         path_to = all_paths.get(previous_index)[1][to_index]
         new_path.extend(path_to)
         previous_index = to_index
-
+    keys = drop_off_dict.keys()
+    singleadd = []
+    for i in keys:
+        if i not in orig_home_indexes:
+            vals = drop_off_dict[i]
+            for v in vals:
+                if v in new_path:
+                    if v in keys:
+                        drop_off_dict[v].append(v)
+                        drop_off_dict[i].remove(v)
+                    else: 
+                        singleadd.append(v)
+                        drop_off_dict[i].remove(v)
+    for item in singleadd:
+        drop_off_dict[item] = [item]
 
     for i in drop_off_dict.keys():
         for k in drop_off_dict.keys():
@@ -418,7 +432,7 @@ def solve_tsp(list_of_locations, list_of_homes, starting_car_location, adjacency
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.local_search_metaheuristic = (
     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
-    search_parameters.time_limit.seconds = 8
+    search_parameters.time_limit.seconds = 3
     #search_parameters.log_search = True
 
     # Solve the problem.
