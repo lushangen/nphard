@@ -218,22 +218,24 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
     for to_index in car_path[1:]:
         new_path.pop()
         path_to = all_paths.get(previous_index)[1][to_index]
-        """
-        for v in path_to:
-            if v in orig_home_indexes and v != to_index:
-                if previous_index in drop_off_dict.keys():
-                    if v in drop_off_dict[previous_index]:
-                        drop_off_dict[previous_index].remove(v)
-                elif v in drop_off_dict.keys():
-                    if v not in drop_off_dict[v]:
-                        drop_off_dict[v].append(v)
-                else:
-                    drop_off_dict[v] = [v]
-        """
         new_path.extend(path_to)
         previous_index = to_index
 
 
+    for i in drop_off_dict.keys():
+        for k in drop_off_dict.keys():
+            if i != k:
+                if i in drop_off_dict[k]:
+                    drop_off_dict[k].remove(i)
+                    drop_off_dict[i].append(i)
+                    
+    removeIt = set()
+    for i in drop_off_dict.keys():
+        if not drop_off_dict[i]:
+            removeIt.add(i)
+
+    for i in removeIt:
+        drop_off_dict.pop(i, None)
     car_path = new_path
     return car_path, drop_off_dict
 
