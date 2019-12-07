@@ -28,6 +28,8 @@ def compute_centrality(v, home_indexes, shortest_paths):
 def compute_group(v, home_indexes, shortest_paths, epsilon):
     #Could home_indexes be empty?
     #REMOVES home if passed in
+    if not home_indexes:
+        return 0, []
     numHomes = len(home_indexes)
     sum = 0
     vpath = shortest_paths[v][0]
@@ -44,9 +46,9 @@ def compute_group(v, home_indexes, shortest_paths, epsilon):
         if homeDist <= minDist * epsilon:
             sum += homeDist
             homeList.append(home)
-    return sum/len(homeList), homeList
+    return sum/len(homeList), homeList[1:]
 
-def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
+def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, adjacency_matrix, params=[]):
     """Entry point of the program."""
     drop_off_dict = {}
     car_path = []
@@ -55,47 +57,55 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     center_map = {}
     epsilon = 1
     home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
+    orig_home_indexes = home_indexes[:]
     cluster_map = {}
 
     start = list_of_locations.index(starting_car_location)
     graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
     all_paths = dict(nx.all_pairs_dijkstra(graph))
 
-    for v in range(list_of_locations):
-        group_score[list_of_locations[v]], cluster_map[list_of_locations[v]] = compute_group(list_of_locations[v], home_indexes, all_paths, 1.2)
+    for v in range(len(list_of_locations)):
+        group_score[v], cluster_map[v] = compute_group(v, home_indexes[:], all_paths, 1.2)
 
-    sorted_v = sorted([k for k in group_score.keys()], key = lambda x: group_score[x])
-    min_group_score = min(group_score.values())
+    sorted_v = sorted([k for k in group_score.keys() if group_score[k] > 0], key = lambda x: group_score[x])
+    min_group_score = group_score[sorted_v[0]]
+    print(min_group_score)
     delta = 1.5
 
     high_centrality_homes = set()  #LOW GROUP SCORE VERTICES (CLUSTER)
     used_homes = set()
     newHome = home_indexes[:]
-    while newHome and sorted_v[0] < delta * min_group_score:
-        
+
+    while newHome and group_score[sorted_v[0]] < delta * min_group_score:
+
         v = sorted_v[0]
         high_centrality_homes.add(v)
-        usedList = cluster_map[v] 
+        usedList = cluster_map[v]
+        #print(usedList)
+        if v in newHome and v not in usedList:
+            usedList.append(v)
         if v in center_map.keys():
             center_map[v].extend(usedList)
         else:
             center_map[v] = usedList
-            if v in home_indexes:
-                centermap[v].append(v)
+            #if v in home_indexes:
+                #center_map[v].append(v)
         for vert in usedList:
             used_homes.add(vert)
             if vert in newHome:
                 newHome.remove(vert)
         used_homes.add(v)
-        if v in newHome:
+        while v in newHome:
             newHome.remove(v)
-        for x in range(list_of_locations):
-            group_score[list_of_locations[x]], cluster_map[list_of_locations[x]] = compute_group(list_of_locations[x], newHome, all_paths, 1.2)
-        
-        sorted_v = sorted([k for k in group_score.keys()], key = lambda x: group_score[x])
+        for x in range(len(list_of_locations)):
+            group_score[x], cluster_map[x] = compute_group(x, newHome[:], all_paths, 1.2)
+        sorted_v = sorted([k for k in group_score.keys() if group_score[k] > 0], key = lambda x: group_score[x])
 
+    for home in newHome:
+        if home not in center_map.keys():
+            center_map[home] = [home]
     """START TIM
-    
+
     for home in high_centrality_homes:
         center_map[home] = [home]
         dist_dict = all_paths.get(home)[0]
@@ -123,11 +133,14 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     # Instantiate the data problem.
     #print(len(home_map))
     END TIM """
-    tspInput = list(high_centrality_homes)    
+    tspInput = list(high_centrality_homes)
     tspInput.extend(newHome)
     if start in tspInput:
         tspInput.remove(start)
     tspInput.insert(0, start)
+    home_map.clear()
+    for i in range(len(tspInput)):
+        home_map[i] = tspInput[i]
     data = create_data_model(tspInput, 0)
 
     # Create the routing index manager.
@@ -165,7 +178,7 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.local_search_metaheuristic = (
     routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
-    search_parameters.time_limit.seconds = 8
+    search_parameters.time_limit.seconds = 2
     #search_parameters.log_search = True
 
     # Solve the problem.
@@ -185,7 +198,6 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     while not routing.IsEnd(index):
         previous_index = manager.IndexToNode(index)
         index = assignment.Value(routing.NextVar(index))
-
         to_index = manager.IndexToNode(index)
         car_path.append(home_map[to_index])
         #path_to = all_paths.get(home_map[previous_index])[1][home_map[to_index]]
@@ -195,16 +207,32 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
         #route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
     # for i in car_path:
     #      print(i)
+
+    #print(car_path)
     drop_off_dict = center_map
-    #if start in drop_off_dict.keys() and not start_in_home:
-    #    drop_off_dict.pop(start, None)
     new_path = [start]
     previous_index = start
+
+
+    print(center_map)
     for to_index in car_path[1:]:
         new_path.pop()
         path_to = all_paths.get(previous_index)[1][to_index]
+        """
+        for v in path_to:
+            if v in orig_home_indexes and v != to_index:
+                if previous_index in drop_off_dict.keys():
+                    if v in drop_off_dict[previous_index]:
+                        drop_off_dict[previous_index].remove(v)
+                elif v in drop_off_dict.keys():
+                    if v not in drop_off_dict[v]:
+                        drop_off_dict[v].append(v)
+                else:
+                    drop_off_dict[v] = [v]
+        """
         new_path.extend(path_to)
         previous_index = to_index
+
 
     car_path = new_path
     return car_path, drop_off_dict
@@ -471,16 +499,17 @@ def solve_from_file(input_file, output_directory, params=[]):
     input_data = utils.read_file(input_file)
     num_of_locations, num_houses, list_locations, list_houses, starting_car_location, adjacency_matrix = data_parser(input_data)
 
-    car_path, drop_offs = solve(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
-    car_path2, drop_offs2 = centrality_solver(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    #car_path, drop_offs = solve(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    #car_path2, drop_offs2 = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
     #car_path3, drop_offs3 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    car_path, drop_offs = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
 
-    ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
-    cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2)
-    cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
+    #ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+    #cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2)
+    #cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
     #cost3, msg3 = cost_of_solution(ad_graph, car_path3, drop_offs3)
-    print(cost2)
-    print(cost1)
+    #print(cost2)
+    #print(cost1)
     #print(cost3)
     """
     if cost2 < cost1:
