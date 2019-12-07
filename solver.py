@@ -27,22 +27,22 @@ def compute_centrality(v, home_indexes, shortest_paths):
 
 def compute_group(v, home_indexes, shortest_paths, epsilon):
     #Could home_indexes be empty?
-    #REMOVES home if passed in 
+    #REMOVES home if passed in
     numHomes = len(home_indexes)
     sum = 0
     vpath = shortest_paths[v][0]
     minDist = vpath[home_indexes[0]]
     homeList = [home_indexes[0]]
     if v in home_indexes:
-        home_indexes.remove(v) 
+        home_indexes.remove(v)
     for home in home_indexes:
         if vpath[home] < minDist:
-            minDist = vpath[home] 
+            minDist = vpath[home]
             homeList = [home]
     for home in home_indexes:
         homeDist = vpath[home]
         if homeDist <= minDist * epsilon:
-            sum += homeDist 
+            sum += homeDist
             homeList.append(home)
     return sum/len(homeList), homeList
 
@@ -52,7 +52,7 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     car_path = []
     home_map = {}
     group_score = {}
-    center_map = {} 
+    center_map = {}
     epsilon = 1
     home_indexes = convert_locations_to_indices(list_of_homes, list_of_locations)
     cluster_map = {}
@@ -62,20 +62,26 @@ def solve_tsp_centrality(list_of_locations, list_of_homes, starting_car_location
     all_paths = dict(nx.all_pairs_dijkstra(graph))
 
     for v in range(list_of_locations):
-        group_score[v], cluster_map[v] = compute_group(v, home_indexes, all_paths, 1.2)
- 
+        group_score[list_of_locations[v]], cluster_map[list_of_locations[v]] = compute_group(list_of_locations[v], home_indexes, all_paths, 1.2)
+
     sorted_v = sorted([k for k in group_score.keys()], key = lambda x: group_score[x])
     min_group_score = min(group_score.values())
     delta = 1.5
-    red_sort_v = [x for x in sorted_v if group_score[x] < delta * min_group_score] 
+
+
+    
+
+    red_sort_v = [x for x in sorted_v if group_score[x] < delta * min_group_score]
     high_centrality_homes = set(red_sort_v)
     used_homes = set()
-    
+
+
+
     for home in high_centrality_homes:
         center_map[home] = [home]
         dist_dict = all_paths.get(home)[0]
         paths_dict = all_paths.get(home)[1]
-        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in used_homes and k in home_indexes} #distance dict of all remaing homes 
+        dist_dict = {k:v for (k,v) in dist_dict.items() if k not in used_homes and k in home_indexes} #distance dict of all remaing homes
 
         min_dist = min(dist_dict.values()) #closest home to high centrality home
         dist_dict = {k:v for (k,v) in dist_dict.items() if dist_dict[k] <= min_dist*epsilon}
@@ -200,15 +206,15 @@ def centrality_solver(list_of_locations, list_of_homes, starting_car_location, a
     #print(start)
     car_path.append(start)
     current_node = start
-    
+
     cent_map = nx.closeness_centrality(graph);
     max = 0;
     maxnode = 0;
-    for k in cent_map.keys(): 
+    for k in cent_map.keys():
         if cent_map[k] > max:
             max = cent_map[k]
             maxnode = k
-     
+
     paths_dict = all_paths.get(start)[1]
     car_path = paths_dict[maxnode]
     rev = car_path[:]
@@ -216,7 +222,7 @@ def centrality_solver(list_of_locations, list_of_homes, starting_car_location, a
     car_path.extend(rev[1:])
     print(car_path)
     drop_off_dict[maxnode] = home_indexes
-    
+
     return car_path, drop_off_dict
 def create_data_model(list_of_homes, starting_location):
     """Stores the data for the problem."""
@@ -445,11 +451,11 @@ def solve_from_file(input_file, output_directory, params=[]):
     #car_path3, drop_offs3 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
 
     ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
-    cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2) 
+    cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2)
     cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
     #cost3, msg3 = cost_of_solution(ad_graph, car_path3, drop_offs3)
     print(cost2)
-    print(cost1) 
+    print(cost1)
     #print(cost3)
     """
     if cost2 < cost1:
