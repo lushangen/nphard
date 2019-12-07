@@ -69,7 +69,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
 
     sorted_v = sorted([k for k in group_score.keys() if group_score[k] > 0], key = lambda x: group_score[x])
     min_group_score = group_score[sorted_v[0]]
-    print(min_group_score)
+    #print(min_group_score)
     delta = 6
 
     high_centrality_homes = set()  #LOW GROUP SCORE VERTICES (CLUSTER)
@@ -214,7 +214,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
     previous_index = start
 
 
-    print(center_map)
+    #print(center_map)
     for to_index in car_path[1:]:
         new_path.pop()
         path_to = all_paths.get(previous_index)[1][to_index]
@@ -230,7 +230,7 @@ def solve_tsp_grouped(list_of_locations, list_of_homes, starting_car_location, a
                     if v in keys:
                         drop_off_dict[v].append(v)
                         drop_off_dict[i].remove(v)
-                    else: 
+                    else:
                         singleadd.append(v)
                         drop_off_dict[i].remove(v)
     for item in singleadd:
@@ -540,12 +540,69 @@ def solve_from_file(input_file, output_directory, params=[]):
 
     convertToFile(car_path, drop_offs, output_file, list_locations)
 
+def tests(input_data, output_data, params=[]):
+        number_of_locations, number_of_houses, list_of_locations, list_of_houses, starting_location, adjacency_matrix = data_parser(input_data)
+        message = ''
+        cost = -1
+        car_cycle = output_data[0]
+        num_dropoffs = int(output_data[1][0])
+        targets = []
+        dropoffs = {}
+        for i in range(num_dropoffs):
+            dropoff = output_data[i + 2]
+            dropoff_index = list_of_locations.index(dropoff[0])
+            dropoffs[dropoff_index] = convert_locations_to_indices(dropoff[1:], list_of_locations)
+
+        G, msg = adjacency_matrix_to_graph(adjacency_matrix)
+        car_cycle = convert_locations_to_indices(car_cycle, list_of_locations)
+        cost, message = cost_of_solution(G, car_cycle, dropoffs)
+
+        return cost, message, car_cycle, dropoffs
+
+
+def solve_from_file_2(input_file, output_file2, output_directory, params=[]):
+    print('Processing', input_file)
+
+    input_data = utils.read_file(input_file)
+    output_data = utils.read_file(output_file2)
+    num_of_locations, num_houses, list_locations, list_houses, starting_car_location, adjacency_matrix = data_parser(input_data)
+    #car_path, drop_offs = solve(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    #car_path2, drop_offs2 = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    #car_path3, drop_offs3 = solve_tsp(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+
+    car_path, drop_offs = solve_tsp_grouped(list_locations, list_houses, starting_car_location, adjacency_matrix, params=params)
+    ad_graph, msg = adjacency_matrix_to_graph(adjacency_matrix)
+
+    cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
+    cost2, msg2, car_path2, drop_offs2 = tests(input_data, output_data)
+
+    #cost2, msg2 = cost_of_solution(ad_graph, car_path2, drop_offs2)
+    #cost1, msg1 = cost_of_solution(ad_graph, car_path, drop_offs)
+    #cost3, msg3 = cost_of_solution(ad_graph, car_path3, drop_offs3)
+    #print(cost2)
+    #print(cost1)
+    #print(cost3)
+
+    if cost2 < cost1:
+       car_path = car_path2
+       drop_offs = drop_offs2
+
+    basename, filename = os.path.split(input_file)
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    output_file = utils.input_to_output(input_file, output_directory)
+
+    convertToFile(car_path, drop_offs, output_file, list_locations)
+
 
 def solve_all(input_directory, output_directory, params=[]):
     input_files = utils.get_files_with_extension(input_directory, 'in')
 
     for input_file in input_files:
-        solve_from_file(input_file, output_directory, params=params)
+        temp_input = input_file[:]
+        output_file = input_file.replace('in', 'out')
+        input_file = temp_input
+        solve_from_file_2(input_file, output_file, output_directory, params=params)
 
 
 if __name__=="__main__":
